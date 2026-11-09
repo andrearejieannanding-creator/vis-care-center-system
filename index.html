@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Victoria Integrated School - CARE Center System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+        body.modal-active {
+            overflow-x: hidden;
+            overflow-y: hidden !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Passcode Security Lock Screen Overlay -->
+    <div id="lockScreen" class="fixed inset-0 bg-slate-900 bg-opacity-95 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center border border-slate-200">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <h2 class="text-xl font-bold text-slate-800 mb-1">CARE Center Security Gate</h2>
+            <p class="text-xs text-slate-500 mb-6">Republic Act No. 10173 (Data Privacy Act of 2012) Compliant</p>
+            
+            <div class="bg-emerald-50 rounded-lg p-3 text-left mb-6 border border-emerald-100">
+                <p class="text-xs text-emerald-800 leading-relaxed">
+                    <i class="fas fa-lock mr-1"></i> <strong>Data Isolation Guarantee:</strong> Student records are stored <u>exclusively on this device browser</u>. No student data is transmitted over the internet or stored on GitHub servers.
+                </p>
+            </div>
+
+            <form id="passcodeForm" onsubmit="unlockSystem(event)">
+                <label class="block text-xs font-semibold text-slate-600 text-left mb-2">Enter Access Passcode</label>
+                <input type="password" id="accessPasscode" class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 text-center font-bold text-lg mb-4" placeholder="••••" required autocomplete="off">
+                <p class="text-xs text-slate-400 mb-4">(Default Passcode: <strong class="text-slate-600">1234</strong> — Changeable in Settings)</p>
+                <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-medium py-3 rounded-lg shadow-md transition text-sm flex items-center justify-center gap-2">
+                    <i class="fas fa-unlock"></i> Unlock CARE Center Portal
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main System Header -->
+    <header class="bg-emerald-800 text-white shadow-lg sticky top-0 z-40">
+        <div class="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white text-emerald-800 rounded-full flex items-center justify-center font-bold text-xl shadow">
+                    <i class="fas fa-heart-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Victoria Integrated School - CARE Center</h1>
+                    <p class="text-xs text-emerald-200">Learner Profiling & Referral Management System</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <button onclick="switchTab('settings')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 border border-emerald-600 transition shadow-sm">
+                    <i class="fas fa-cog"></i> Settings & Passcode
+                </button>
+                <button onclick="lockSystemNow()" class="bg-rose-700 hover:bg-rose-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 border border-rose-600 transition shadow-sm">
+                    <i class="fas fa-lock"></i> Lock Portal
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Bar -->
+        <nav class="bg-emerald-900 px-6 flex gap-2 overflow-x-auto text-xs font-semibold">
+            <button id="tab-btn-dashboard" onclick="switchTab('dashboard')" class="px-4 py-3 border-b-2 border-amber-400 text-amber-300 flex items-center gap-2 whitespace-nowrap">
+                <i class="fas fa-chart-line"></i> Dashboard
+            </button>
+            <button id="tab-btn-learners" onclick="switchTab('learners')" class="px-4 py-3 border-b-2 border-transparent text-emerald-100 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                <i class="fas fa-users"></i> Learner Directory
+            </button>
+            <button id="tab-btn-referrals" onclick="switchTab('referrals')" class="px-4 py-3 border-b-2 border-transparent text-emerald-100 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                <i class="fas fa-clipboard-list"></i> Referrals
+            </button>
+            <button id="tab-btn-anecdotal" onclick="switchTab('anecdotal')" class="px-4 py-3 border-b-2 border-transparent text-emerald-100 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                <i class="fas fa-book-bookmark"></i> Anecdotal Logs
+            </button>
+            <button id="tab-btn-settings" onclick="switchTab('settings')" class="px-4 py-3 border-b-2 border-transparent text-emerald-100 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                <i class="fas fa-sliders"></i> System Settings
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+
+        <!-- DASHBOARD TAB -->
+        <section id="tab-dashboard" class="space-y-6">
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-xl">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-semibold uppercase">Total Learners</p>
+                        <h3 id="statTotalLearners" class="text-2xl font-bold text-slate-800">0</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center text-xl">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-semibold uppercase">Pending Referrals</p>
+                        <h3 id="statPendingReferrals" class="text-2xl font-bold text-slate-800">0</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center text-xl">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-semibold uppercase">Anecdotal Records</p>
+                        <h3 id="statAnecdotalCount" class="text-2xl font-bold text-slate-800">0</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 bg-rose-100 text-rose-700 rounded-xl flex items-center justify-center text-xl">
+                        <i class="fas fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-semibold uppercase">Urgent Cases</p>
+                        <h3 id="statUrgentCases" class="text-2xl font-bold text-slate-800">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Toolbar -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="openModal('quickReferralModal')" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 shadow-sm transition">
+                        <i class="fas fa-plus-circle"></i> Quick Referral
+                    </button>
+                    <button onclick="openModal('addLearnerModal')" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 shadow-sm transition">
+                        <i class="fas fa-user-plus"></i> Add Learner
+                    </button>
+                    <button onclick="openModal('importModal')" class="bg-teal-700 hover:bg-teal-800 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 shadow-sm transition">
+                        <i class="fas fa-file-import"></i> Bulk CSV / SF1 Import
+                    </button>
+                </div>
+                <button onclick="exportAllDataJSON()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-slate-300 transition">
+                    <i class="fas fa-download"></i> Backup System Data
+                </button>
+            </div>
+
+            <!-- Recent Activity Tables Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Recent Referrals -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fas fa-clock-rotate-left text-amber-600"></i> Recent Referrals
+                        </h3>
+                        <button onclick="switchTab('referrals')" class="text-xs font-semibold text-emerald-700 hover:underline">View All</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-50 text-slate-500 uppercase font-bold border-b">
+                                <tr>
+                                    <th class="p-2">Learner</th>
+                                    <th class="p-2">Category</th>
+                                    <th class="p-2">Urgency</th>
+                                    <th class="p-2">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashRecentReferralsTable" class="divide-y divide-slate-100">
+                                <tr>
+                                    <td colspan="4" class="p-4 text-center text-slate-400 italic">No recent referrals recorded.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recent Anecdotal Logs -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fas fa-book-open text-emerald-600"></i> Recent Counseling Logs
+                        </h3>
+                        <button onclick="switchTab('anecdotal')" class="text-xs font-semibold text-emerald-700 hover:underline">View All</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-50 text-slate-500 uppercase font-bold border-b">
+                                <tr>
+                                    <th class="p-2">Date</th>
+                                    <th class="p-2">Learner</th>
+                                    <th class="p-2">Incident Note</th>
+                                    <th class="p-2">Action Taken</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashRecentAnecdotalTable" class="divide-y divide-slate-100">
+                                <tr>
+                                    <td colspan="4" class="p-4 text-center text-slate-400 italic">No counseling notes recorded yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LEARNER DIRECTORY TAB -->
+        <section id="tab-learners" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                <div class="flex-1 min-w-[240px] relative">
+                    <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" id="learnerSearchInput" oninput="renderLearnerDirectory()" placeholder="Search learner name or LRN..." class="w-full pl-9 pr-4 py-2 border rounded-lg text-xs focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="openModal('addLearnerModal')" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Add Profile
+                    </button>
+                    <button onclick="openModal('importModal')" class="bg-teal-700 hover:bg-teal-800 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
+                        <i class="fas fa-file-csv"></i> Batch CSV Import
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-100 text-slate-600 font-bold uppercase border-b">
+                            <tr>
+                                <th class="p-3">LRN</th>
+                                <th class="p-3">Full Name</th>
+                                <th class="p-3">Grade & Section</th>
+                                <th class="p-3">Gender</th>
+                                <th class="p-3">Parent / Guardian</th>
+                                <th class="p-3">Contact</th>
+                                <th class="p-3 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="learnerDirectoryTable" class="divide-y divide-slate-100">
+                            <tr>
+                                <td colspan="7" class="p-6 text-center text-slate-400">No learners enrolled yet. Click <strong>"Add Profile"</strong> or <strong>"Batch CSV Import"</strong> to start.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- REFERRALS TAB -->
+        <section id="tab-referrals" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 text-sm">Teacher Referral Log</h3>
+                <button onclick="openModal('quickReferralModal')" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
+                    <i class="fas fa-plus"></i> New Student Referral
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-100 text-slate-600 font-bold uppercase border-b">
+                            <tr>
+                                <th class="p-3">Date</th>
+                                <th class="p-3">Learner</th>
+                                <th class="p-3">Referred By</th>
+                                <th class="p-3">Category</th>
+                                <th class="p-3">Urgency</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="referralsTable" class="divide-y divide-slate-100">
+                            <tr>
+                                <td colspan="7" class="p-6 text-center text-slate-400">No active referrals submitted yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ANECDOTAL LOGS TAB -->
+        <section id="tab-anecdotal" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 text-sm">Counseling & Anecdotal Logs</h3>
+                <button onclick="openModal('addAnecdotalModal')" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
+                    <i class="fas fa-plus"></i> Log Counseling Session
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-100 text-slate-600 font-bold uppercase border-b">
+                            <tr>
+                                <th class="p-3">Date</th>
+                                <th class="p-3">Learner</th>
+                                <th class="p-3">Observed Incident / Notes</th>
+                                <th class="p-3">Action Taken</th>
+                                <th class="p-3">Counselor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="anecdotalTable" class="divide-y divide-slate-100">
+                            <tr>
+                                <td colspan="5" class="p-6 text-center text-slate-400">No anecdotal entries recorded yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SYSTEM SETTINGS TAB -->
+        <section id="tab-settings" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i class="fas fa-shield-cat text-emerald-700"></i> Security & Access Configuration
+                </h3>
+                <div class="max-w-md space-y-3">
+                    <label class="block text-xs font-semibold text-slate-600">Change Security Passcode</label>
+                    <input type="password" id="newPasscode" placeholder="Enter new numeric passcode" class="w-full px-3 py-2 border rounded-lg text-xs">
+                    <button onclick="updateSystemPasscode()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg text-xs font-semibold">
+                        Update Security Passcode
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i class="fas fa-database text-teal-700"></i> Data Operations & Testing
+                </h3>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="seedDemoData()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
+                        <i class="fas fa-seedling"></i> Load 5 Sample Demo Profiles
+                    </button>
+                    <button onclick="exportAllDataJSON()" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
+                        <i class="fas fa-download"></i> Download Local System Backup (.json)
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-rose-50 p-6 rounded-xl border border-rose-200 shadow-sm space-y-3">
+                <h3 class="font-bold text-rose-800 text-sm flex items-center gap-2">
+                    <i class="fas fa-triangle-exclamation"></i> Danger Zone
+                </h3>
+                <p class="text-xs text-rose-700">Wipe all student profiles, referrals, and logs from this browser device (used when starting a new school year).</p>
+                <button onclick="clearAllData()" class="bg-rose-700 hover:bg-rose-800 text-white px-4 py-2 rounded-lg text-xs font-semibold">
+                    Clear All Database Records
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: BATCH CSV IMPORT -->
+    <div id="importModal" class="modal opacity-0 pointer-events-none fixed inset-0 bg-slate-900 bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4 border border-slate-200">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-sm">Bulk CSV / SF1 Import</h3>
+                <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <p class="text-xs text-slate-500">Paste your SF1 rows or CSV format below (`lrn,name,grade,section,gender,guardian,contact`):</p>
+            <textarea id="csvPasteArea" class="w-full h-36 p-3 border rounded-lg text-xs font-mono" placeholder="109823456701,Dela Cruz Juan,7,Rizal,Male,Maria Dela Cruz,09171234567"></textarea>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeModal('importModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold">Cancel</button>
+                <button onclick="processCSVImport()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold">Process Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: QUICK REFERRAL -->
+    <div id="quickReferralModal" class="modal opacity-0 pointer-events-none fixed inset-0 bg-slate-900 bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-sm">Submit Quick Learner Referral</h3>
+                <button onclick="closeModal('quickReferralModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="handleQuickReferral(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Select Learner</label>
+                    <select id="refStudentSelect" class="w-full p-2 border rounded-lg text-xs" required></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Referred By (Teacher / Adviser)</label>
+                    <input type="text" id="refTeacher" class="w-full p-2 border rounded-lg text-xs" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Category</label>
+                    <select id="refCategory" class="w-full p-2 border rounded-lg text-xs">
+                        <option>Behavioral / Discipline</option>
+                        <option>Emotional / Mental Health</option>
+                        <option>Academic Drop</option>
+                        <option>Frequent Absenteeism</option>
+                        <option>Bullying Incident</option>
+                        <option>Family Concern</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Urgency</label>
+                    <select id="refUrgency" class="w-full p-2 border rounded-lg text-xs">
+                        <option>Normal</option>
+                        <option>Urgent</option>
+                        <option>Emergency / Critical</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Observations</label>
+                    <textarea id="refObservations" class="w-full p-2 border rounded-lg text-xs h-20" required></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('quickReferralModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold">Submit Referral</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: ADD LEARNER -->
+    <div id="addLearnerModal" class="modal opacity-0 pointer-events-none fixed inset-0 bg-slate-900 bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-sm">Add Learner Profile</h3>
+                <button onclick="closeModal('addLearnerModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="handleAddLearner(event)" class="space-y-3">
+                <input type="text" id="addLrn" placeholder="12-Digit LRN" class="w-full p-2 border rounded-lg text-xs" required>
+                <input type="text" id="addName" placeholder="Full Name (Last, First MI)" class="w-full p-2 border rounded-lg text-xs" required>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="addGrade" placeholder="Grade Level" class="w-full p-2 border rounded-lg text-xs" required>
+                    <input type="text" id="addSection" placeholder="Section" class="w-full p-2 border rounded-lg text-xs" required>
+                </div>
+                <select id="addGender" class="w-full p-2 border rounded-lg text-xs">
+                    <option>Male</option>
+                    <option>Female</option>
+                </select>
+                <input type="text" id="addGuardian" placeholder="Parent / Guardian Name" class="w-full p-2 border rounded-lg text-xs">
+                <input type="text" id="addContact" placeholder="Contact Number" class="w-full p-2 border rounded-lg text-xs">
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('addLearnerModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold">Save Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: ADD ANECDOTAL LOG -->
+    <div id="addAnecdotalModal" class="modal opacity-0 pointer-events-none fixed inset-0 bg-slate-900 bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-sm">Log Counseling Note</h3>
+                <button onclick="closeModal('addAnecdotalModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="handleAddAnecdotal(event)" class="space-y-3">
+                <select id="anecdotalStudentSelect" class="w-full p-2 border rounded-lg text-xs" required></select>
+                <input type="text" id="anecdotalCounselor" placeholder="Counselor / Designate Name" class="w-full p-2 border rounded-lg text-xs" required>
+                <textarea id="anecdotalIncident" placeholder="Observed Incident / Notes" class="w-full p-2 border rounded-lg text-xs h-20" required></textarea>
+                <textarea id="anecdotalAction" placeholder="Action Taken / Plan" class="w-full p-2 border rounded-lg text-xs h-20" required></textarea>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('addAnecdotalModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold">Save Log</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Core -->
+    <script>
+        let learners = JSON.parse(localStorage.getItem('vis_learners')) || [];
+        let referrals = JSON.parse(localStorage.getItem('vis_referrals')) || [];
+        let anecdotalLogs = JSON.parse(localStorage.getItem('vis_anecdotal')) || [];
+        let systemPasscode = localStorage.getItem('vis_passcode') || '1234';
+
+        function saveState() {
+            localStorage.setItem('vis_learners', JSON.stringify(learners));
+            localStorage.setItem('vis_referrals', JSON.stringify(referrals));
+            localStorage.setItem('vis_anecdotal', JSON.stringify(anecdotalLogs));
+            localStorage.setItem('vis_passcode', systemPasscode);
+            refreshUI();
+        }
+
+        function unlockSystem(e) {
+            e.preventDefault();
+            const entered = document.getElementById('accessPasscode').value;
+            if (entered === systemPasscode) {
+                document.getElementById('lockScreen').classList.add('hidden');
+            } else {
+                alert('Incorrect Passcode!');
+            }
+        }
+
+        function lockSystemNow() {
+            document.getElementById('lockScreen').classList.remove('hidden');
+        }
+
+        function switchTab(tabId) {
+            ['dashboard', 'learners', 'referrals', 'anecdotal', 'settings'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${t}`).classList.remove('border-amber-400', 'text-amber-300');
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tabId}`).classList.add('border-amber-400', 'text-amber-300');
+        }
+
+        function openModal(id) {
+            const m = document.getElementById(id);
+            if (m) {
+                m.classList.remove('opacity-0', 'pointer-events-none');
+                populateDropdowns();
+            }
+        }
+
+        function closeModal(id) {
+            const m = document.getElementById(id);
+            if (m) {
+                m.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        function populateDropdowns() {
+            const s1 = document.getElementById('refStudentSelect');
+            const s2 = document.getElementById('anecdotalStudentSelect');
+            const opts = learners.map(l => `<option value="${l.lrn}">${l.name} (${l.grade}-${l.section})</option>`).join('');
+            if (s1) s1.innerHTML = opts || '<option value="">No Learners Enrolled</option>';
+            if (s2) s2.innerHTML = opts || '<option value="">No Learners Enrolled</option>';
+        }
+
+        function handleAddLearner(e) {
+            e.preventDefault();
+            learners.push({
+                lrn: document.getElementById('addLrn').value,
+                name: document.getElementById('addName').value,
+                grade: document.getElementById('addGrade').value,
+                section: document.getElementById('addSection').value,
+                gender: document.getElementById('addGender').value,
+                guardian: document.getElementById('addGuardian').value,
+                contact: document.getElementById('addContact').value
+            });
+            saveState();
+            closeModal('addLearnerModal');
+        }
+
+        function handleQuickReferral(e) {
+            e.preventDefault();
+            referrals.unshift({
+                lrn: document.getElementById('refStudentSelect').value,
+                teacher: document.getElementById('refTeacher').value,
+                category: document.getElementById('refCategory').value,
+                urgency: document.getElementById('refUrgency').value,
+                observations: document.getElementById('refObservations').value,
+                status: 'Pending',
+                date: new Date().toISOString().split('T')[0]
+            });
+            saveState();
+            closeModal('quickReferralModal');
+        }
+
+        function handleAddAnecdotal(e) {
+            e.preventDefault();
+            anecdotalLogs.unshift({
+                lrn: document.getElementById('anecdotalStudentSelect').value,
+                counselor: document.getElementById('anecdotalCounselor').value,
+                incident: document.getElementById('anecdotalIncident').value,
+                action: document.getElementById('anecdotalAction').value,
+                date: new Date().toISOString().split('T')[0]
+            });
+            saveState();
+            closeModal('addAnecdotalModal');
+        }
+
+        function processCSVImport() {
+            const lines = document.getElementById('csvPasteArea').value.split('\n');
+            lines.forEach(l => {
+                const p = l.split(',');
+                if (p.length >= 4) {
+                    learners.push({
+                        lrn: p[0].trim(),
+                        name: p[1].trim(),
+                        grade: p[2].trim(),
+                        section: p[3].trim(),
+                        gender: p[4] ? p[4].trim() : 'N/A',
+                        guardian: p[5] ? p[5].trim() : 'N/A',
+                        contact: p[6] ? p[6].trim() : 'N/A'
+                    });
+                }
+            });
+            saveState();
+            closeModal('importModal');
+        }
+
+        function seedDemoData() {
+            learners = [
+                { lrn: '109823456701', name: 'Dela Cruz, Juan', grade: '7', section: 'Rizal', gender: 'Male', guardian: 'Maria Dela Cruz', contact: '09171234567' },
+                { lrn: '109823456702', name: 'Santos, Maria', grade: '7', section: 'Rizal', gender: 'Female', guardian: 'Jose Santos', contact: '09187654321' }
+            ];
+            saveState();
+        }
+
+        function clearAllData() {
+            if (confirm('Clear all data from browser storage?')) {
+                learners = [];
+                referrals = [];
+                anecdotalLogs = [];
+                saveState();
+            }
+        }
+
+        function exportAllDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ learners, referrals, anecdotalLogs }));
+            const anchor = document.createElement('a');
+            anchor.setAttribute("href", dataStr);
+            anchor.setAttribute("download", `vis_care_center_backup_${new Date().toISOString().split('T')[0]}.json`);
+            anchor.click();
+        }
+
+        function refreshUI() {
+            document.getElementById('statTotalLearners').innerText = learners.length;
+            document.getElementById('statPendingReferrals').innerText = referrals.filter(r => r.status === 'Pending').length;
+            document.getElementById('statAnecdotalCount').innerText = anecdotalLogs.length;
+            document.getElementById('statUrgentCases').innerText = referrals.filter(r => r.urgency === 'Emergency / Critical').length;
+
+            renderLearnerDirectory();
+        }
+
+        function renderLearnerDirectory() {
+            const q = (document.getElementById('learnerSearchInput')?.value || '').toLowerCase();
+            const filtered = learners.filter(l => l.name.toLowerCase().includes(q) || l.lrn.includes(q));
+            document.getElementById('learnerDirectoryTable').innerHTML = filtered.map(l => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 font-mono text-xs">${l.lrn}</td>
+                    <td class="p-3 font-bold">${l.name}</td>
+                    <td class="p-3">Grade ${l.grade} - ${l.section}</td>
+                    <td class="p-3">${l.gender}</td>
+                    <td class="p-3">${l.guardian}</td>
+                    <td class="p-3">${l.contact}</td>
+                    <td class="p-3 text-center">
+                        <button class="text-rose-600 hover:text-rose-800" onclick="deleteLearner('${l.lrn}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="7" class="p-6 text-center text-slate-400">No matching learners found.</td></tr>';
+        }
+
+        function deleteLearner(lrn) {
+            learners = learners.filter(l => l.lrn !== lrn);
+            saveState();
+        }
+
+        // Initialize UI on startup
+        refreshUI();
+    </script>
+</body>
+</html>
